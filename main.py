@@ -51,3 +51,31 @@ def add_tasks(new_tasks:Tasks):
     else:
         highest_id-=1
         raise HTTPException(status_code=400, detail="Empty title")    
+    
+
+@app.put("/tasks/{id}")
+def update(id:int,task:Tasks):
+
+    for target in storage:
+        if target.get("id")==id:
+          if task.title != '':
+              target["task"]=task.title
+
+              return target
+          else:
+            raise HTTPException(status_code=400,detail="invalid body")
+
+    raise HTTPException(status_code=404, detail="Not found")
+
+
+
+@app.delete("/tasks/{id}",status_code=204)
+def delete(id:int):
+
+    for target in storage:
+
+        if target.get("id")==id:
+            storage.remove(target)
+            return
+    else:    
+        raise HTTPException(status_code=404, detail="not found")        
