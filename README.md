@@ -47,6 +47,7 @@ curl -i -X POST http://127.0.0.1:8000/tasks -H "Content-Type: application/json" 
 ## Swagger UI
 
 The full CRUD cycle (create, list, update, delete) was tested via the interactive `/docs` page.
+![Swagger UI](Screenshot 2026-07-22 123608.png)
 
 ```
 [ INSERT YOUR SWAGGER UI SCREENSHOT HERE — showing endpoints list and a successful "Try it out" call ]
