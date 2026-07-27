@@ -26,20 +26,33 @@ cursor.execute("""CREATE TABLE if not exists TASKS(
 def root():
      return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
 
-# @app.get("/tasks/{id}")
-# def read(id:int):
+@app.get("/tasks/{id}")
+def read(id:int):
+
+   
+    cursor.execute("select * from tasks where id = ? ",(id,))
+    result= cursor.fetchone() 
     
-#     for target in storage:
-#         if target.get("id")==id:
-#             return target
-    
-#     raise HTTPException(status_code=404, detail=f"Task {id} not found")
+    if result is None:
+     raise HTTPException(status_code=404, detail=f"Task {id} not found")
+   
+    return {"id":result[0], "title":result[1], "done":bool(result[2])}
 
 
-# @app.get("/tasks")
-# def get_all():
 
-#     return storage
+@app.get("/tasks")
+def get_all():
+
+  cursor.execute("select * from tasks")
+  data=cursor.fetchall()
+
+  record=[]
+
+  for rows in data:
+     record.append({"id":rows[0],"title":rows[1],"done":rows[2]})  
+
+  return record
+
 
 
 @app.post("/tasks", status_code=201)
