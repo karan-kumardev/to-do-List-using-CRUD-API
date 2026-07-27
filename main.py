@@ -5,8 +5,9 @@ from pydantic import BaseModel
 
 class Tasks(BaseModel):
     title:str
+    done:bool
 
-conn=sqlite3.connect("to_do.db",check_same_thread=False) # connecting sqlite to this file
+conn=sqlite3.connect("tasks.db",check_same_thread=False) # connecting sqlite to this file
 app=FastAPI()
 cursor=conn.cursor() # creating cursor to execute operations
 
@@ -20,7 +21,14 @@ cursor.execute("""CREATE TABLE if not exists TASKS(
 
             """)
 
+cursor.execute("select count(*) from tasks")
+count = cursor.fetchone()[0]
 
+if count == 0:
+    cursor.execute("insert into tasks (title, done) values (?, ?)", ("Buy milk", False))
+    cursor.execute("insert into tasks (title, done) values (?, ?)", ("Read book", False))
+    cursor.execute("insert into tasks (title, done) values (?, ?)", ("Clean room", False))
+    conn.commit()
 
 @app.get("/")
 def root():
@@ -49,7 +57,7 @@ def get_all():
   record=[]
 
   for rows in data:
-     record.append({"id":rows[0],"title":rows[1],"done":rows[2]})  
+     record.append({"id":rows[0],"title":rows[1],"done":bool(rows[2])})  
 
   return record
 
@@ -68,3 +76,31 @@ def add_tasks(new_task:Tasks):
         
         
     
+@app.delete("/tasks/{id}",status_code=204)
+def delete(id:int):
+
+    cursor.execute("delete from tasks where id=?",(id,))
+    conn.commit()
+    
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="not found")      
+    
+
+
+@app.put("/tasks/{id}")
+def update(id:int,task:Tasks):
+
+
+        if task.title!="":
+         cursor.execute("update tasks set title=?, done=? where id=?",(task.title,task.done,id,))
+         conn.commit()
+        
+        else:
+            raise HTTPException(status_code=400,detail="invalid body")
+
+        if cursor.rowcount==0:
+          raise HTTPException(status_code=404, detail="Not found")
+
+
+        return {"id":id,"title":task.title,"done":task.done}
+
