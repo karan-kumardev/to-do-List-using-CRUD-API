@@ -1,14 +1,20 @@
-# Task API — CRUD with FastAPI + SQLite
+# Task API — CRUD with FastAPI + Postgres (Dockerized)
 
-A CRUD API for managing a to-do list, built with FastAPI as part of the FlyRank Internship (Backend Track). Started as an in-memory API in Week 2 (Assignment A1); now backed by a real SQLite database (Week 3, Assignment A2) so data survives a server restart.
+A CRUD API for managing a to-do list, built with FastAPI as part of the FlyRank Internship (Backend Track). The storage layer has evolved across three assignments in this same repo:
+
+1. **Week 2 (A1)** — in-memory list (gone on restart)
+2. **Week 3 (A2)** — SQLite file (`tasks.db`), survives a restart
+3. **Week 1 (A3, this version)** — PostgreSQL running in Docker, with the whole stack (app + database) started by a single `docker compose up`
+
+The API's endpoints and response shapes have stayed identical through all three — only the storage engine underneath changed each time.
 
 ## What this is
 
-A REST API that supports Create, Read, Update, and Delete operations on a list of tasks, persisted in a SQLite database (`tasks.db`). The API's endpoints and responses are unchanged from Week 2 — only the storage layer moved from an in-memory list to disk.
+A REST API supporting Create, Read, Update, and Delete on a list of tasks, persisted in a containerized PostgreSQL database. The app itself also runs in a container, and Docker Compose starts both together.
 
-## Why SQLite
+## Why Postgres + Docker
 
-SQLite needs no separate server or install — the entire database is a single file (`tasks.db`), created automatically the first time the app runs. For a project this size, that meant zero setup friction while still getting real persistence: data now survives a restart, which an in-memory list never could.
+SQLite (A2) was a single file — simple, but not how real production backends usually store data. Postgres is a proper database *server*, the same kind of engine used by large-scale backends (including FlyRank's own stack). Running it in Docker means no manual Postgres install, no version conflicts, and the exact same setup on any machine — "works on my machine" stops being a meaningful excuse. A named Docker volume keeps the data safe even if the containers are torn down and rebuilt.
 
 ## How to run it
 
@@ -17,17 +23,24 @@ SQLite needs no separate server or install — the entire database is a single f
    git clone <your-repo-url>
    cd todo-api
    ```
-2. Install dependencies:
+2. Copy the example environment file:
    ```
-   pip install fastapi uvicorn
+   cp .env.example .env
    ```
-3. Start the server:
+   (`.env` is git-ignored; `.env.example` shows which variables are needed. For local dev the default values work as-is.)
+3. Start the whole stack — app and database together:
    ```
-   uvicorn main:app --reload
+   docker compose up
    ```
 4. Visit `http://127.0.0.1:8000` to confirm it's running, or `http://127.0.0.1:8000/docs` for the interactive Swagger UI.
 
-On first run, `tasks.db` is created automatically with a `tasks` table, seeded with 3 example tasks. Restarting the server does not duplicate the seed data or reset your changes — everything is saved to disk.
+On first run, Docker builds the app image, pulls the official `postgres:16` image, and the app automatically creates the `tasks` table and seeds 3 example tasks (only if the table is empty). Data persists in a named volume (`taskdata`) — running `docker compose down` then `docker compose up` again does not lose your data.
+
+### Environment variables
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `postgres://postgres:dev@db:5432/tasks` | Connection string the app uses to reach Postgres. Inside Compose, the host is `db` (the service name), not `localhost`. |
 
 ## Endpoints
 
@@ -36,11 +49,11 @@ On first run, `tasks.db` is created automatically with a `tasks` table, seeded w
 | GET    | `/`             | API info                            | 200     | —                 |
 | GET    | `/tasks`        | List all tasks                      | 200     | —                 |
 | GET    | `/tasks/{id}`   | Get a single task by id             | 200     | 404 if not found  |
-| POST   | `/tasks`        | Create a new task (`{"title": ..., "done": ...}`)| 201 | 400 if title empty|
+| POST   | `/tasks`        | Create a new task (`{"title": ...}`, `done` optional, defaults to false) | 201 | 400 if title empty |
 | PUT    | `/tasks/{id}`   | Update a task's title and done status | 200   | 400 empty / 404 not found |
 | DELETE | `/tasks/{id}`   | Delete a task                       | 204     | 404 if not found  |
 
-All CRUD operations use parameterized SQL queries (`?` placeholders) — no user input is ever inserted directly into a query string.
+All CRUD operations use parameterized SQL queries (`%s` placeholders via `psycopg`) — no user input is ever inserted directly into a query string.
 
 ## Example request
 
@@ -62,20 +75,23 @@ The full CRUD cycle (create, list, update, delete) was tested via the interactiv
 
 ## Exploring the database directly
 
-`tasks.db` can be opened in [DB Browser for SQLite](https://sqlitebrowser.org/) to inspect or edit data outside the API — both read and write the same file, so changes made in either place appear in the other with no restart needed.
+With the stack running, open a `psql` prompt inside the database container:
+```
+docker exec -it todo-api-db-1 psql -U postgres -d tasks
+```
 
 ```
-[ INSERT DB BROWSER SCREENSHOT HERE — showing the tasks table and its rows ]
+[ INSERT SCREENSHOT HERE — psql \dt and a SELECT * FROM tasks; showing your data ]
 ```
 
-**Query run by hand in DB Browser:**
-```sql
-UPDATE tasks SET done = 1 WHERE id = 1;
-```
-**What it returned:** marked task 1 as complete directly in the database; confirmed via `GET /tasks/1` immediately afterward, which showed `"done": true` with no server restart — proving the API and DB Browser read the exact same file.
+## Persistence, proven
+
+Created a task via POST, then ran `docker compose down` (removing both containers) followed by `docker compose up` again. `GET /tasks` still showed the created task afterward — confirming the named volume (`taskdata`) kept the data safe across a full stack teardown and rebuild, not just an app restart.
 
 ## Notes
 
-- Data is stored in `tasks.db` (SQLite) and survives server restarts.
-- Task IDs are assigned automatically by the database, never supplied by the client.
+- Data lives in Postgres, inside a named Docker volume (`taskdata`) — it survives `docker compose down`/`up`, but would be lost if the volume itself were deleted (`docker compose down -v`).
+- Task IDs are assigned automatically by the database (`SERIAL PRIMARY KEY`), never supplied by the client.
 - The 3 seed tasks are inserted only on the very first run (when the table is empty) — restarting does not duplicate them.
+- `.env` is git-ignored; only `.env.example` (with placeholder-safe values) is committed. No credentials are hardcoded anywhere in the source.
+- Inside the Compose network, the app reaches Postgres via the service name `db`, not `localhost` — this is different from running the app locally against a manually-started container (Stage 0–3), where `localhost` was used.
