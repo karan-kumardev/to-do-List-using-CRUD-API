@@ -35,36 +35,37 @@ if count == 0:
     cursor.execute("insert into tasks (title, done) values (%s, %s)", ("Clean room", False))
     conn.commit()
 
-# @app.get("/")
-# def root():
-#      return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
 
-# @app.get("/tasks/{id}")
-# def read(id:int):
+@app.get("/")
+def root():
+     return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
+
+@app.get("/tasks/{id}")
+def read(id:int):
 
    
-#     cursor.execute("select * from tasks where id = $1 ",(id,))
-#     result= cursor.fetchone() 
+    cursor.execute("select * from tasks where id = %s ",(id,))
+    result= cursor.fetchone() 
     
-#     if result is None:
-#      raise HTTPException(status_code=404, detail=f"Task {id} not found")
+    if result is None:
+     raise HTTPException(status_code=404, detail=f"Task {id} not found")
    
-#     return {"id":result[0], "title":result[1], "done":bool(result[2])}
+    return {"id":result[0], "title":result[1], "done":bool(result[2])}
 
 
 
-# @app.get("/tasks")
-# def get_all():
+@app.get("/tasks")
+def get_all():
 
-#   cursor.execute("select * from tasks")
-#   data=cursor.fetchall()
+  cursor.execute("select * from tasks")
+  data=cursor.fetchall()
 
-#   record=[]
+  record=[]
 
-#   for rows in data:
-#      record.append({"id":rows[0],"title":rows[1],"done":bool(rows[2])})  
+  for rows in data:
+     record.append({"id":rows[0],"title":rows[1],"done":bool(rows[2])})  
 
-#   return record
+  return record
 
 
 
