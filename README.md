@@ -94,4 +94,8 @@ Created a task via POST, then ran `docker compose down` (removing both container
 - Task IDs are assigned automatically by the database (`SERIAL PRIMARY KEY`), never supplied by the client.
 - The 3 seed tasks are inserted only on the very first run (when the table is empty) — restarting does not duplicate them.
 - `.env` is git-ignored; only `.env.example` (with placeholder-safe values) is committed. No credentials are hardcoded anywhere in the source.
+
 - Inside the Compose network, the app reaches Postgres via the service name `db`, not `localhost` — this is different from running the app locally against a manually-started container (Stage 0–3), where `localhost` was used.
+
+- Inside the Compose network, the app reaches Postgres via the service name `db`, not `localhost` — this is different from running the app locally against a manually-started container (Stage 0–3), where `localhost` was used.
+
