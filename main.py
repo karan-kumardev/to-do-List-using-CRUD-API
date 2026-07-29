@@ -10,7 +10,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 class Tasks(BaseModel):
     title:str
-    done:bool
+    done:bool=False
 
 conn=psycopg.connect(DATABASE_URL)
 app=FastAPI()
