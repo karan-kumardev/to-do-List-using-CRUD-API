@@ -69,44 +69,44 @@ def get_all():
 
 
 
-# @app.post("/tasks", status_code=201)
-# def add_tasks(new_task:Tasks):
+@app.post("/tasks", status_code=201)
+def add_tasks(new_task:Tasks):
 
-#    if new_task.title != "": 
-#      cursor.execute("insert into tasks (title, done) values ($1, $2)",(new_task.title,False) )
-#      conn.commit()
-#      id=cursor.lastrowid
-#      return {"id":id, "title":new_task.title,"done":False}  
-#    else:
-#        raise HTTPException(status_code=400,detail="Empty Body ") 
+   if new_task.title != "": 
+     cursor.execute("insert into tasks (title, done) values (%s, %s) returning *",(new_task.title,False) )
+     new_row=cursor.fetchone()
+     conn.commit()
+     return {"id":new_row[0],"title":new_row[1],"done":bool(new_row[2])}
+   else:
+       raise HTTPException(status_code=400,detail="Empty Body ") 
         
         
     
-# @app.delete("/tasks/{id}",status_code=204)
-# def delete(id:int):
+@app.delete("/tasks/{id}",status_code=204)
+def delete(id:int):
 
-#     cursor.execute("delete from tasks where id=$1",(id,))
-#     conn.commit()
+    cursor.execute("delete from tasks where id=%s",(id,))
+    conn.commit()
     
-#     if cursor.rowcount == 0:
-#         raise HTTPException(status_code=404, detail="not found")      
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="not found")      
     
 
 
-# @app.put("/tasks/{id}")
-# def update(id:int,task:Tasks):
+@app.put("/tasks/{id}")
+def update(id:int,task:Tasks):
 
 
-#         if task.title!="":
-#          cursor.execute("update tasks set title=$1, done=$2 where id=$3",(task.title,task.done,id,))
-#          conn.commit()
+        if task.title!="":
+         cursor.execute("update tasks set title=%s, done=%s where id=%s",(task.title,task.done,id,))
+         conn.commit()
         
-#         else:
-#             raise HTTPException(status_code=400,detail="invalid body")
+        else:
+            raise HTTPException(status_code=400,detail="invalid body")
 
-#         if cursor.rowcount==0:
-#           raise HTTPException(status_code=404, detail="Not found")
+        if cursor.rowcount==0:
+          raise HTTPException(status_code=404, detail="Not found")
 
 
-#         return {"id":id,"title":task.title,"done":task.done}
+        return {"id":id,"title":task.title,"done":task.done}
 
