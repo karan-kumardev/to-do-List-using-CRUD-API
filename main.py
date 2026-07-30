@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from authentication import auth as auth_router
+from authentication import auth as auth_router,open_router
 
 
 load_dotenv()
@@ -17,6 +17,7 @@ class Tasks(BaseModel):
 conn=psycopg.connect(DATABASE_URL)
 app=FastAPI()
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(open_router, tags=["protected/protected"])
 cursor=conn.cursor() # creating cursor to execute operations
 
 

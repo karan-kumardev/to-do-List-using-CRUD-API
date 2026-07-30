@@ -11,6 +11,7 @@ class User(BaseModel):
 
 
 auth=APIRouter()
+open_router=APIRouter()
 load_dotenv()
 
 store=[{"email":"","password":""}]
@@ -53,14 +54,19 @@ def login(user:User):
     except:
         raise  HTTPException(status_code=401, detail="Non Existing User")   
 
-@auth.get("/public/info")
+@open_router.get("/public/info")
 def public_info():
     return {"message": "Welcome stranger! This info is public."}    
 
-@auth.get("/protected/profile")
-def profile(authorization:str=Header(None)):
-    if not authorization or not authorization.startswith("Bearer"):
-        raise HTTPException(status_code=401,detail="Access token required")
+@open_router.get("/protected/profile")
+def profile(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Access token required")
 
-    token=authorization.split(" ")[1]
-    return {"token_received":token}
+    token = authorization.split(" ")[1]
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        return user_response
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
