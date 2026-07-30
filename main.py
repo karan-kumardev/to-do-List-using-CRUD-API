@@ -1,9 +1,11 @@
-## Week 2 Task-- CRUD using FastAPI
+## Week 4 Task-- CRUD using FastAPI
 import psycopg
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from authentication import auth as auth_router
+
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -14,6 +16,7 @@ class Tasks(BaseModel):
 
 conn=psycopg.connect(DATABASE_URL)
 app=FastAPI()
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 cursor=conn.cursor() # creating cursor to execute operations
 
 
