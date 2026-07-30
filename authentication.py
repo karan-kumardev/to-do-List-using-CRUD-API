@@ -1,7 +1,7 @@
 from supabase import Client, create_client
 from dotenv import load_dotenv
 import os
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Header
 from pydantic import BaseModel
 
 
@@ -52,3 +52,15 @@ def login(user:User):
         return response
     except:
         raise  HTTPException(status_code=401, detail="Non Existing User")   
+
+@auth.get("/public/info")
+def public_info():
+    return {"message": "Welcome stranger! This info is public."}    
+
+@auth.get("/protected/profile")
+def profile(authorization:str=Header(None)):
+    if not authorization or not authorization.startswith("Bearer"):
+        raise HTTPException(status_code=401,detail="Access token required")
+
+    token=authorization.split(" ")[1]
+    return {"token_received":token}
