@@ -1,7 +1,7 @@
 from supabase import Client, create_client
 from dotenv import load_dotenv
 import os
-from fastapi import APIRouter, HTTPException,Header
+from fastapi import APIRouter, HTTPException,Header,Depends
 from pydantic import BaseModel
 
 
@@ -9,6 +9,17 @@ class User(BaseModel):
     email:str
     password:str
 
+def verify_token(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Access token required")
+    
+    token = authorization.split(" ")[1]
+    
+    try:
+            user_response = supabase.auth.get_user(token)
+            return user_response
+    except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 auth=APIRouter()
 open_router=APIRouter()
@@ -59,14 +70,14 @@ def public_info():
     return {"message": "Welcome stranger! This info is public."}    
 
 @open_router.get("/protected/profile")
-def profile(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Access token required")
+def profile(user=Depends(verify_token)):
+    return user
 
-    token = authorization.split(" ")[1]
 
-    try:
-        user_response = supabase.auth.get_user(token)
-        return user_response
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+@auth.post("/logout",status_code=204)
+def logout(user=Depends(verify_token)):
+     supabase.auth.sign_out()   
+
+@open_router.get("/protected/dashboard")
+def dashboard(user=Depends(verify_token)):
+    return {"message": "Welcome to your dashboard", "user": user}     
