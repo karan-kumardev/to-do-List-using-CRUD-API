@@ -3,24 +3,23 @@ from dotenv import load_dotenv
 import os
 from fastapi import APIRouter, HTTPException,Header,Depends
 from pydantic import BaseModel
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-
+security = HTTPBearer()
 class User(BaseModel):
     email:str
     password:str
 
-def verify_token(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Access token required")
-    
-    token = authorization.split(" ")[1]
-    
-    try:
-            user_response = supabase.auth.get_user(token)
-            return user_response
-    except Exception:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials 
 
+    try:
+        user_response = supabase.auth.get_user(token)
+        return user_response
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    
 auth=APIRouter()
 open_router=APIRouter()
 load_dotenv()
